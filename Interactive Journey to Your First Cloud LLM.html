@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide: The Gemma LLM Lab</title>
+    <!-- Chosen Palette: Professional Blues -->
+    <!-- Application Structure Plan: The application is designed as a top-down narrative infographic. It starts with a high-level summary (key stats, tools), moves to the procedural flow (a visual 5-step process), then dives into interactive "deep dive" sections for key technical concepts (memory, prompting, parameters), and concludes with the assessment criteria. This thematic, scrolling structure was chosen over a direct 1:1 copy of the lab's parts because it tells a more engaging story, allowing users to grasp the "why" behind each concept through visualization before focusing on the "how" of the lab steps. -->
+    <!-- Visualization & Content Choices: 
+        - Lab Stats (2B Params, T4 GPU): Goal: Inform -> Method: Large text stats -> Justification: Immediately grounds the user with key metrics.
+        - Toolkit (Colab, HF, etc.): Goal: Organize -> Method: HTML/CSS grid with Unicode icons -> Justification: Clearly introduces the core components without complex graphics.
+        - 5-Step Flow: Goal: Organize -> Method: HTML/CSS vertical flowchart -> Justification: Visualizes the lab's process more effectively than a simple list.
+        - Memory Optimization: Goal: Compare -> Method: Chart.js Bar Chart -> Justification: Best way to show the dramatic VRAM reduction from float32 to bfloat16.
+        - Chat Templates: Goal: Compare -> Method: Side-by-side HTML code blocks -> Justification: A direct visual comparison of "right vs. wrong" is highly effective for a coding concept.
+        - Temperature Parameter: Goal: Compare/Relationships -> Method: Chart.js Grouped Bar Chart -> Justification: Visually contrasts the effects of low vs. high temperature on abstract concepts like creativity and predictability.
+        - Grading Rubric: Goal: Inform -> Method: Chart.js Donut Chart -> Justification: Excellent for showing parts of a whole (100 points).
+        - Library/Method: All charts use Chart.js (Canvas). All diagrams use HTML/CSS with Tailwind.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flow-arrow {
+            color: #3b82f6; /* blue-500 */
+            font-size: 2rem;
+            line-height: 1;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .nav-button {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .nav-button.active {
+            background-color: #1d4ed8; /* blue-700 */
+            color: white;
+        }
+        .nav-button:not(.active) {
+            background-color: #e0e7ff; /* indigo-100 */
+            color: #3730a3; /* indigo-800 */
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <nav class="sticky top-0 bg-white/80 backdrop-blur-md z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center items-center py-3 space-x-2 md:space-x-4 overflow-x-auto">
+                <button onclick="scrollToSection('header')" class="nav-button active">Start</button>
+                <button onclick="scrollToSection('toolkit')" class="nav-button">Toolkit</button>
+                <button onclick="scrollToSection('flow')" class="nav-button">Flow</button>
+                <button onclick="scrollToSection('deep-dive')" class="nav-button">Deep Dive</button>
+                <button onclick="scrollToSection('submission')" class="nav-button">Submission</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <header id="header" class="text-center py-16">
+            <h1 class="text-4xl md:text-6xl font-black text-blue-900 mb-2">Your First Cloud LLM</h1>
+            <p class="text-xl md:text-2xl text-slate-600">An Interactive Journey with Gemma 2B-IT</p>
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <div class="card p-6">
+                    <p class="text-5xl font-extrabold text-blue-600">2B</p>
+                    <p class="text-lg font-semibold text-slate-700 mt-2">Parameters</p>
+                    <p class="text-sm text-slate-500">A lightweight but powerful model.</p>
+                </div>
+                <div class="card p-6">
+                    <p class="text-5xl font-extrabold text-blue-600">T4</p>
+                    <p class="text-lg font-semibold text-slate-700 mt-2">GPU Accelerator</p>
+                    <p class="text-sm text-slate-500">Free, powerful hardware in Colab.</p>
+                </div>
+                <div class="card p-6">
+                    <p class="text-5xl font-extrabold text-blue-600">100%</p>
+                    <p class="text-lg font-semibold text-slate-700 mt-2">Cloud-Native</p>
+                    <p class="text-sm text-slate-500">The modern workflow for ML.</p>
+                </div>
+            </div>
+        </header>
+
+        <section id="toolkit" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-blue-900">The Mission Toolkit</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">This lab integrates several industry-standard tools. This section introduces each component's role, providing a foundation for understanding the modern ML development workflow you are about to use.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="card text-center">
+                    <div class="text-6xl mb-4">☁️</div>
+                    <h3 class="text-xl font-bold mb-2">Google Colab</h3>
+                    <p class="text-slate-600">Your cloud-based Python environment with free access to a powerful T4 GPU, where all the code will run.</p>
+                </div>
+                <div class="card text-center">
+                    <div class="text-6xl mb-4">🤗</div>
+                    <h3 class="text-xl font-bold mb-2">Hugging Face</h3>
+                    <p class="text-slate-600">The central hub for accessing the Gemma model and managing your secure access token for authentication.</p>
+                </div>
+                <div class="card text-center">
+                    <div class="text-6xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold mb-2">Transformers</h3>
+                    <p class="text-slate-600">The essential Python library from Hugging Face for loading, configuring, and interacting with the LLM.</p>
+                </div>
+                <div class="card text-center">
+                    <div class="text-6xl mb-4">💎</div>
+                    <h3 class="text-xl font-bold mb-2">Gemma 2B-IT</h3>
+                    <p class="text-slate-600">The lightweight, instruction-tuned language model from Google that you will command in this lab.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="flow" class="py-16 bg-slate-100 rounded-2xl">
+            <h2 class="text-3xl font-bold text-center mb-4 text-blue-900">The 5-Step Mission Flow</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">The lab follows a linear path from environment setup to final experimentation. This visual guide outlines the entire process, showing how each step builds upon the last, culminating in successful model interaction and evidence collection.</p>
+            <div class="flex flex-col items-center space-y-4">
+                <div class="card w-full max-w-3xl text-center">
+                    <p class="text-blue-600 font-bold">STEP 1</p>
+                    <h3 class="text-2xl font-bold">Setup & Authenticate</h3>
+                    <p class="text-slate-600 mt-1">Configure the Colab T4 GPU and securely log in to Hugging Face using a `read` token stored in Colab Secrets.</p>
+                </div>
+                <div class="flow-arrow">▼</div>
+                <div class="card w-full max-w-3xl text-center">
+                    <p class="text-blue-600 font-bold">STEP 2</p>
+                    <h3 class="text-2xl font-bold">Load Model & Tokenizer</h3>
+                    <p class="text-slate-600 mt-1">Install libraries and load the Gemma tokenizer and the 2-billion-parameter model onto the GPU using `bfloat16` precision.</p>
+                </div>
+                <div class="flow-arrow">▼</div>
+                <div class="card w-full max-w-3xl text-center">
+                    <p class="text-blue-600 font-bold">STEP 3</p>
+                    <h3 class="text-2xl font-bold">Generate Text with Templates</h3>
+                    <p class="text-slate-600 mt-1">Create a `text-generation` pipeline and use the model's chat template to craft a well-formatted prompt for a coherent response.</p>
+                </div>
+                 <div class="flow-arrow">▼</div>
+                <div class="card w-full max-w-3xl text-center">
+                    <p class="text-blue-600 font-bold">STEP 4</p>
+                    <h3 class="text-2xl font-bold">Experiment with Parameters</h3>
+                    <p class="text-slate-600 mt-1">Adjust inference parameters like `temperature` and `max_new_tokens` to observe their impact on the model's creativity and output length.</p>
+                </div>
+                 <div class="flow-arrow">▼</div>
+                <div class="card w-full max-w-3xl text-center">
+                    <p class="text-blue-600 font-bold">STEP 5</p>
+                    <h3 class="text-2xl font-bold">Collect & Submit Evidence</h3>
+                    <p class="text-slate-600 mt-1">Capture a screenshot of your results and programmatically print the model's configuration to submit for grading.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="deep-dive" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-blue-900">Technical Deep Dive</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">This section explores the core technical concepts that make running a powerful LLM in a free cloud environment possible. Understanding these principles is key to moving from a user to a true practitioner.</p>
+            
+            <div class="card mb-12">
+                <h3 class="text-2xl font-bold text-center mb-2">Memory Optimization: The `bfloat16` Advantage</h3>
+                <p class="text-center text-slate-600 mb-6 max-w-2xl mx-auto">Running a 2-billion-parameter model on a GPU with limited VRAM is possible thanks to reduced precision. The lab uses `bfloat16`, which halves the model's memory footprint compared to the standard `float32` with negligible impact on performance for inference.</p>
+                <div class="chart-container">
+                    <canvas id="memoryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card mb-12">
+                <h3 class="text-2xl font-bold text-center mb-2">The Art of the Prompt: Chat Templates</h3>
+                <p class="text-center text-slate-600 mb-6 max-w-2xl mx-auto">Instruction-tuned models like Gemma 2B-IT are trained to follow conversational formats. Using the official chat template is critical for getting high-quality, relevant answers instead of confusing, repetitive text. This comparison shows the dramatic difference in output.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="p-4 rounded-lg bg-red-50 border border-red-200">
+                        <h4 class="text-xl font-bold mb-4 text-red-800">❌ The Wrong Way (Raw String)</h4>
+                        <pre class="bg-red-100 text-red-900 p-3 rounded-md text-sm overflow-x-auto"><code>raw_prompt = "Explain transfer learning."
+outputs = pipe(raw_prompt)</code></pre>
+                        <p class="mt-4 text-red-700">The model may try to *complete* your sentence rather than *answering* it, leading to incoherent, repetitive, or irrelevant output.</p>
+                    </div>
+                    <div class="p-4 rounded-lg bg-green-50 border border-green-200">
+                        <h4 class="text-xl font-bold mb-4 text-green-800">✅ The Right Way (Chat Template)</h4>
+                        <pre class="bg-green-100 text-green-900 p-3 rounded-md text-sm overflow-x-auto"><code>chat = [{"role": "user", "content": "..."}]
+prompt = tokenizer.apply_chat_template(chat)
+outputs = pipe(prompt)</code></pre>
+                        <p class="mt-4 text-green-700">This formats the input exactly as the model expects, triggering its instruction-following behavior for a clear, coherent, and helpful response.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="text-2xl font-bold text-center mb-2">Tuning the Output: The `temperature` Dial</h3>
+                <p class="text-center text-slate-600 mb-6 max-w-2xl mx-auto">The `temperature` parameter controls the randomness of the model's output. A low temperature produces predictable, deterministic text (good for factual recall), while a high temperature encourages creativity and diversity (good for brainstorming), but also increases the risk of nonsensical answers.</p>
+                 <div class="chart-container">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="submission" class="py-16">
+            <h2 class="text-3xl font-bold text-center mb-4 text-blue-900">Mission Success: Grading Breakdown</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-12">Your final grade is based on providing concrete evidence of successful model execution and thoughtful reflection on the lab's core concepts. This chart shows how the 100 total points are allocated across the three submission components.</p>
+            <div class="card">
+                <div class="chart-container">
+                    <canvas id="gradingChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="text-center p-6 bg-slate-800 text-white">
+        <p>Interactive Application for the "Module 2 Lab Guide".</p>
+        <p class="text-sm text-slate-400 mt-1">Built with Tailwind CSS and Chart.js.</p>
+    </footer>
+
+    <script>
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+
+        const wrapLabel = (label, maxLength = 16) => {
+            if (typeof label !== 'string' || label.length <= maxLength) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > maxLength && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        };
+        
+        const colorPalette = {
+            darkBlue: '#1e3a8a', // blue-900
+            mainBlue: '#2563eb', // blue-600
+            lightBlue: '#60a5fa', // blue-400
+            lighterBlue: '#93c5fd', // blue-300
+            slate: '#334155' // slate-700
+        };
+
+        new Chart(document.getElementById('memoryChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Standard Precision (float32)', 'Optimized Precision (bfloat16)'],
+                datasets: [{
+                    label: 'Approx. VRAM Usage (GB)',
+                    data: [10.7, 5.4],
+                    backgroundColor: [colorPalette.lightBlue, colorPalette.mainBlue],
+                    borderColor: [colorPalette.darkBlue, colorPalette.darkBlue],
+                    borderWidth: 2,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Gigabytes (GB) of VRAM', color: colorPalette.slate },
+                        grid: { color: '#e2e8f0' }
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: { display: false },
+                    tooltip: { callbacks: { title: tooltipTitleCallback } }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('temperatureChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Predictability', 'Creativity', 'Risk of Nonsense'],
+                datasets: [
+                    {
+                        label: 'Low Temperature (e.g., 0.2)',
+                        data: [9, 2, 1],
+                        backgroundColor: colorPalette.lightBlue,
+                        borderColor: colorPalette.darkBlue,
+                        borderWidth: 1,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'High Temperature (e.g., 0.9)',
+                        data: [3, 9, 6],
+                        backgroundColor: colorPalette.mainBlue,
+                        borderColor: colorPalette.darkBlue,
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: { display: true, text: 'Relative Score (0-10)', color: colorPalette.slate },
+                        grid: { color: '#e2e8f0' }
+                    },
+                     x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: false },
+                    tooltip: { callbacks: { title: tooltipTitleCallback } }
+                }
+            }
+        });
+
+        const gradingLabels = [
+            'Evidence 1: Screenshot',
+            'Evidence 2: Model Config',
+            'Reflection Questions'
+        ];
+        new Chart(document.getElementById('gradingChart'), {
+            type: 'doughnut',
+            data: {
+                labels: gradingLabels.map(l => wrapLabel(l)),
+                datasets: [{
+                    label: 'Points',
+                    data: [40, 40, 20],
+                    backgroundColor: [
+                        colorPalette.mainBlue,
+                        colorPalette.lightBlue,
+                        colorPalette.lighterBlue
+                    ],
+                    borderColor: '#f8fafc',
+                    borderWidth: 4,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: false },
+                    tooltip: { callbacks: { title: tooltipTitleCallback } }
+                }
+            }
+        });
+
+        function scrollToSection(id) {
+            const section = document.getElementById(id);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        const sections = document.querySelectorAll('section, header');
+        const navButtons = document.querySelectorAll('.nav-button');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navButtons.forEach(button => {
+                        if (button.getAttribute('onclick').includes(entry.target.id)) {
+                            button.classList.add('active');
+                        } else {
+                            button.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        }, { rootMargin: '-50% 0px -50% 0px' });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+    </script>
+</body>
+</html>
